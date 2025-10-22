@@ -1,32 +1,184 @@
-<html>
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <script src="./static/mywebscript.js"></script>
-    <style>
-        .center-heading {
-            text-align: center;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente de IA - Teses Jurídicas</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div class="card">
-        <div class="card-body">
-            <h1 class="center-heading">NLP - Emotion Detection</h1> 
-            <div style="padding: 25px 25px 25px 25px;">
-            <h2 class="mb-3">
-                <label class="form-label">Please enter the text to be analyzed</label>
-                <input type="textarea" class="form-control" id="textToAnalyze">
-            </h2>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-balance-scale"></i> Agente de IA - Desenvolvimento de Teses Jurídicas
+            </span>
+        </div>
+    </nav>
 
-            <div style="padding: 25px 25px 25px 25px;">
-                <button onclick="RunSentimentAnalysis()" class="btn btn-secondary">Run Sentiment Analysis</button>
+    <div class="container mt-4">
+        <!-- Tabs de navegação -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="thesis-tab" data-toggle="tab" href="#thesis" role="tab">
+                    <i class="fas fa-file-alt"></i> Gerar Tese
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="analysis-tab" data-toggle="tab" href="#analysis" role="tab">
+                    <i class="fas fa-search"></i> Analisar Caso
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="arguments-tab" data-toggle="tab" href="#arguments" role="tab">
+                    <i class="fas fa-comments"></i> Sugerir Argumentos
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+            <!-- Tab: Gerar Tese -->
+            <div class="tab-pane fade show active" id="thesis" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="fas fa-graduation-cap"></i> Gerador de Teses Jurídicas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="thesisTopic">Tópico da Tese:</label>
+                            <input type="text" class="form-control" id="thesisTopic"
+                                   placeholder="Ex: A responsabilidade civil no direito digital">
+                        </div>
+                        <div class="form-group">
+                            <label for="legalArea">Área do Direito:</label>
+                            <select class="form-control" id="legalArea">
+                                <option value="geral">Geral (Auto-detectar)</option>
+                                <option value="constitucional">Constitucional</option>
+                                <option value="civil">Civil</option>
+                                <option value="penal">Penal</option>
+                                <option value="trabalhista">Trabalhista</option>
+                                <option value="administrativo">Administrativo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="detailLevel">Nível de Detalhamento:</label>
+                            <select class="form-control" id="detailLevel">
+                                <option value="basic">Básico</option>
+                                <option value="medium" selected>Médio</option>
+                                <option value="detailed">Detalhado</option>
+                            </select>
+                        </div>
+                        <button onclick="generateThesis()" class="btn btn-primary btn-block">
+                            <i class="fas fa-magic"></i> Gerar Tese Jurídica
+                        </button>
+                    </div>
+                </div>
+
+                <div id="thesisResult" class="card mt-3" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="fas fa-check-circle"></i> Tese Gerada</h5>
+                    </div>
+                    <div class="card-body" id="thesisContent">
+                        <!-- Conteúdo da tese será inserido aqui -->
+                    </div>
+                    <div class="card-footer">
+                        <button onclick="downloadThesis()" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Baixar como Texto
+                        </button>
+                        <button onclick="copyThesis()" class="btn btn-info">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div style="padding: 25px 25px 25px 25px;"></div>
-            <h2 class="mb-3">
-                <label class="form-label">Result of Emotion Detection</label>
-            </h2>
 
-            <div id="system_response" style="padding: 25px 25px 25px 25px;"></div>
+            <!-- Tab: Analisar Caso -->
+            <div class="tab-pane fade" id="analysis" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="fas fa-gavel"></i> Análise de Caso Jurídico</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="caseDescription">Descrição do Caso:</label>
+                            <textarea class="form-control" id="caseDescription" rows="6"
+                                      placeholder="Descreva o caso jurídico que deseja analisar..."></textarea>
+                        </div>
+                        <button onclick="analyzeCase()" class="btn btn-info btn-block">
+                            <i class="fas fa-search"></i> Analisar Caso
+                        </button>
+                    </div>
+                </div>
+
+                <div id="analysisResult" class="card mt-3" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="fas fa-check-circle"></i> Análise do Caso</h5>
+                    </div>
+                    <div class="card-body" id="analysisContent">
+                        <!-- Conteúdo da análise será inserido aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Sugerir Argumentos -->
+            <div class="tab-pane fade" id="arguments" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header bg-warning">
+                        <h5><i class="fas fa-lightbulb"></i> Sugestão de Argumentos Jurídicos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="position">Posição a Defender:</label>
+                            <input type="text" class="form-control" id="position"
+                                   placeholder="Ex: Cabimento de indenização por danos morais">
+                        </div>
+                        <div class="form-group">
+                            <label for="context">Contexto (opcional):</label>
+                            <textarea class="form-control" id="context" rows="4"
+                                      placeholder="Forneça contexto adicional se necessário..."></textarea>
+                        </div>
+                        <button onclick="suggestArguments()" class="btn btn-warning btn-block">
+                            <i class="fas fa-comments"></i> Sugerir Argumentos
+                        </button>
+                    </div>
+                </div>
+
+                <div id="argumentsResult" class="card mt-3" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="fas fa-check-circle"></i> Argumentos Sugeridos</h5>
+                    </div>
+                    <div class="card-body" id="argumentsContent">
+                        <!-- Conteúdo dos argumentos será inserido aqui -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" data-backdrop="static" data-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Processando...</span>
+                    </div>
+                    <p class="mt-3">Processando sua solicitação...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Agente de IA para Desenvolvimento de Teses Jurídicas - 2024</span>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="/static/legal_agent.js"></script>
 </body>
+</html>
