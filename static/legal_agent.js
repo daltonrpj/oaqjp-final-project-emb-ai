@@ -389,3 +389,215 @@ function copyThesis() {
         alert('Erro ao copiar: ' + err);
     });
 }
+
+// ============= FUNÇÕES PARA SUBSÍDIOS JURÍDICOS =============
+
+let currentContestacao = null;
+
+// Função para gerar contestação
+function gerarContestacao() {
+    const peticaoInicial = document.getElementById('peticaoInicial').value;
+    const subsidioTecnico = document.getElementById('subsidioTecnico').value;
+
+    if (!peticaoInicial.trim() || !subsidioTecnico.trim()) {
+        alert('Por favor, forneça tanto a petição inicial quanto o subsídio técnico.');
+        return;
+    }
+
+    $('#loadingModal').modal('show');
+
+    fetch('/gerarContestacao', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            peticaoInicial: peticaoInicial,
+            subsidioTecnico: subsidioTecnico
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        $('#loadingModal').modal('hide');
+
+        if (data.error) {
+            alert('Erro: ' + data.error);
+            return;
+        }
+
+        currentContestacao = data;
+        displayAnalisePrevia(data);
+        displayContestacao(data);
+    })
+    .catch(error => {
+        $('#loadingModal').modal('hide');
+        alert('Erro ao gerar contestação: ' + error);
+    });
+}
+
+// Função para exibir análise prévia
+function displayAnalisePrevia(data) {
+    const analiseDiv = document.getElementById('analisePrevia');
+    const peticaoInfoDiv = document.getElementById('peticaoInfoContent');
+    const subsidioInfoDiv = document.getElementById('subsidioInfoContent');
+    const tesesDiv = document.getElementById('tesesContent');
+
+    // Informações da Petição
+    let peticaoHtml = `
+        <div class="alert alert-light">
+            <p><strong>Autor:</strong> ${data.peticaoInfo.autor}</p>
+            <p><strong>CPF:</strong> ${data.peticaoInfo.cpf}</p>
+            <p><strong>Processo:</strong> ${data.peticaoInfo.processo}</p>
+            <p><strong>Juízo:</strong> ${data.peticaoInfo.juizo}</p>
+            <p><strong>Valor da Causa:</strong> R$ ${data.peticaoInfo.valor_causa}</p>
+        </div>
+    `;
+    peticaoInfoDiv.innerHTML = peticaoHtml;
+
+    // Informações do Subsídio
+    let subsidioHtml = `
+        <div class="alert alert-light">
+            <p><strong>Cliente:</strong> ${data.subsidioInfo.cliente.nome}</p>
+            <p><strong>Linha:</strong> ${data.subsidioInfo.linha}</p>
+            <p><strong>Contrato:</strong> ${data.subsidioInfo.contrato}</p>
+            <p><strong>Operadora:</strong> ${data.subsidioInfo.operadora_linha}</p>
+            <p><strong>Conclusão:</strong> ${data.subsidioInfo.conclusao_tecnica.substring(0, 150)}...</p>
+        </div>
+    `;
+    subsidioInfoDiv.innerHTML = subsidioHtml;
+
+    // Teses Identificadas
+    let tesesHtml = '<div class="row">';
+    data.tesesDisponiveis.forEach(tese => {
+        const badgeClass = tese.relevancia === 'alta' ? 'badge-danger' : 'badge-warning';
+        const isSelecionada = data.tesesSelecionadas.some(t => t.tese === tese.tese);
+        const border = isSelecionada ? 'border-success' : '';
+
+        tesesHtml += `
+            <div class="col-md-6 mb-2">
+                <div class="card ${border}">
+                    <div class="card-body">
+                        <h6>
+                            ${tese.detalhes.titulo}
+                            <span class="badge ${badgeClass} float-right">${tese.relevancia}</span>
+                            ${isSelecionada ? '<i class="fas fa-check-circle text-success float-right mr-2"></i>' : ''}
+                        </h6>
+                        <p class="small mb-0">${tese.fundamentacao}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    tesesHtml += '</div>';
+    tesesDiv.innerHTML = tesesHtml;
+
+    analiseDiv.style.display = 'block';
+    analiseDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Função para exibir contestação
+function displayContestacao(data) {
+    const resultDiv = document.getElementById('contestacaoResult');
+    const contentDiv = document.getElementById('contestacaoContent');
+
+    let html = `
+        <div class="alert alert-success">
+            <h5><i class="fas fa-check"></i> Contestação Gerada com Sucesso!</h5>
+            <p><strong>Processo:</strong> ${data.contestacao.metadata.processo}</p>
+            <p><strong>Autor:</strong> ${data.contestacao.metadata.autor}</p>
+            <p class="mb-0"><strong>Gerado em:</strong> ${new Date(data.contestacao.metadata.gerado_em).toLocaleString('pt-BR')}</p>
+        </div>
+    `;
+
+    // Exibir cada seção da contestação
+    data.contestacao.secoes.forEach((secao, index) => {
+        html += `
+            <div class="contestacao-secao mb-4">
+                <h4 class="text-danger">
+                    <span class="badge badge-danger">${index + 1}</span> ${secao.titulo}
+                </h4>
+                <div class="contestacao-content p-3 bg-light rounded">
+                    ${secao.conteudo.replace(/\n/g, '<br>')}
+                </div>
+            </div>
+        `;
+    });
+
+    contentDiv.innerHTML = html;
+    resultDiv.style.display = 'block';
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Função para baixar contestação
+function downloadContestacao() {
+    if (!currentContestacao) return;
+
+    const text = currentContestacao.textoFormatado;
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contestacao_${currentContestacao.peticaoInfo.processo.replace(/\D/g, '')}_${Date.now()}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    alert('Contestação baixada com sucesso!');
+}
+
+// Função para copiar contestação
+function copyContestacao() {
+    if (!currentContestacao) return;
+
+    const text = currentContestacao.textoFormatado;
+
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Contestação copiada para a área de transferência!');
+    }).catch(err => {
+        alert('Erro ao copiar: ' + err);
+    });
+}
+
+// Função para imprimir contestação
+function printContestacao() {
+    if (!currentContestacao) return;
+
+    const contentDiv = document.getElementById('contestacaoContent');
+    const printWindow = window.open('', '_blank');
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Contestação - Processo ${currentContestacao.peticaoInfo.processo}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 12pt;
+                    line-height: 1.6;
+                    margin: 2cm;
+                }
+                h4 {
+                    color: #000;
+                    margin-top: 20px;
+                }
+                .badge {
+                    display: none;
+                }
+                .contestacao-content {
+                    text-align: justify;
+                    margin-bottom: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            ${contentDiv.innerHTML}
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+}
